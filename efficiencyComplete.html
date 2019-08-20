@@ -1,0 +1,167 @@
+<html>
+	<head>
+	<script src="StrategicNets.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.5.1/cytoscape.min.js"></script>
+	<script src="https://unpkg.com/webcola/WebCola/cola.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/cytoscape-cola@2.3.0/cytoscape-cola.min.js"></script>
+	<link href="https://fonts.googleapis.com/css?family=Lobster" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Cabin" rel="stylesheet">
+	<style>
+	
+		body {
+			font-family: 'Lobster', cursive;
+		}
+		
+		.comment {
+			font-family: 'Cabin', cursive;
+			color: #5b5b5b;
+		}
+		
+		#cy {
+			width: 100%;
+			height: 500px;
+			display: block;
+			border: 1px solid #000;
+		}
+		
+		#main {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			-webkit-box-pack: center;
+			-moz-box-pack: center;
+			-ms-flex-pack: center;
+			-webkit-justify-content: center;
+			align-items: center;
+			-webkit-box-align: center;
+			-moz-box-align: center;
+			-ms-flex-align: center;
+			-webkit-align-items: center;
+		}
+		
+		#content {
+			width: 80%;
+		}
+	</style>
+	</head>
+	<body>
+	<div id="main">
+		<div id="content">
+		<h1>Let's play with network efficiency!</h1>
+			<div id="cy"></div>
+			<div id="controls">
+				<div class="nslidecontainer">
+				  <label for="nodes">Nodes</label>
+				  <label id="nodes"></label>
+				  <input type="range" min="1" max="5" step="1" value="4" class="slider" id="nodesRange">
+				</div>
+				<div class="dslidecontainer">
+				  <label for="delta">Delta</label>
+				  <label id="delta"></label>
+				  <input type="range" min="0" max="0.999" step="0.001" value="0.055" class="slider" id="deltaRange">
+				</div>
+				<div class="cslidecontainer">
+				  <label for="cost">Cost</label>
+				  <label id="cost"></label>
+				  <input type="range" min="0.1" max="2" step="0.1" value="0.1" class="slider" id="costRange">
+				</div>
+				<div class="ineqcontainer">
+				  <label for="ineq">Inequality</label>
+				  <label id="ineq"></label>
+				</div>
+				<div class="comment">
+					<p>
+						Agents want to add links only if it's not too expensive considering the benefit.
+					</p>
+					<p>
+					Let's consider strong efficiency depending on delta and cost value, we will observe the following:
+					<ul>
+					
+					<li>
+						𝙘 < 𝛅-𝛅², cost to form a link is very low so the complete network is efficient
+					</li>
+					<li>
+						𝛅-𝛅²<𝙘<𝛅+(n-2)*𝛅²/2, the cost is medium and the star network is efficient
+					</li>
+					<li>
+						𝛅+(n-2)*𝛅²/2<𝙘, the cost is high so the empty network is efficient
+					</li>
+					</ul>
+					</p>
+					<p>
+						Try to reduce the benefit and increase the cost: agents will stand on their own.<br/>
+						Increasing the benefit and gradually reducing the cost, agents are pushed to get connected.
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>
+	</body>
+	<script>
+		function calcEff(n,d,c) {	
+			var nodes = Array.from(Array(n).keys());
+			var g = new SimpleNets(nodes, [], d, c);
+			
+			var customGraph = g.efficiencyComplete();			
+			var customGraphCy = customGraph.toCyU();
+			
+
+			var cy = cytoscape({
+				  container: document.getElementById('cy'), // container to render in
+				  elements: {
+					nodes: customGraphCy.nodes,
+					edges: customGraphCy.edges
+				 },
+				 style: cytoscape.stylesheet()
+					.selector('node')
+					.style({
+						'content': 'data(utility)',
+						'background-color': '#ff004d',
+					})
+				});
+				var layout = cy.layout({
+				  name: 'circle'
+				});
+				layout.run();
+		}
+		
+		function calcIneq(n,d,c) {
+			if (+c < +d-(+d*+d)) return "c < d-d^2 => Complete network";
+			if ((+d-(+d*+d) < +c ) && (+c < +d + ((+n-2)/2)*(+d*+d))) return "d-(d*d) < c < d+((n-2)/2)*(d*d) => Star network";
+			if ((+d + ((+n-2)/2)*(+d*+d)) < +c) return "(d+((n-2)/2)*(d*d)) < c => Empty network";
+		}
+	
+		var nslider = document.getElementById("nodesRange");
+		var noutput = document.getElementById("nodes");
+		noutput.innerHTML = nslider.value;
+		
+		var dslider = document.getElementById("deltaRange");
+		var doutput = document.getElementById("delta");
+		doutput.innerHTML = dslider.value; 
+		
+		var cslider = document.getElementById("costRange");
+		var coutput = document.getElementById("cost");
+		coutput.innerHTML = cslider.value;
+		
+		nslider.oninput = function() {
+		  noutput.innerHTML = this.value;
+		  calcEff(+nslider.value,+dslider.value, +cslider.value);
+		  ineq.innerHTML = calcIneq(+nslider.value, +dslider.value, +cslider.value);
+		}
+		
+		dslider.oninput = function() {
+		  doutput.innerHTML = this.value;
+		  calcEff(+nslider.value, +dslider.value, +cslider.value);
+		  ineq.innerHTML = calcIneq(+nslider.value, +dslider.value, +cslider.value);
+		}
+		
+		cslider.oninput = function() {
+		  coutput.innerHTML = this.value;
+		  calcEff(+nslider.value,+dslider.value, +cslider.value);
+		  ineq.innerHTML = calcIneq(+nslider.value, +dslider.value, +cslider.value);
+		}
+	
+		calcEff(+nslider.value, +dslider.value, +cslider.value);
+		ineq.innerHTML = calcIneq(+nslider.value, +dslider.value, +cslider.value);
+	</script>
+</html>

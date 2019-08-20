@@ -1,1 +1,1 @@
-# strategicnets
+# StrategicNets
